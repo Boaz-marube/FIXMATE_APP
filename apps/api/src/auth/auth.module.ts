@@ -6,9 +6,13 @@ import { UserSchema } from "./schema/user.schema";
 import { RefreshToken, RefreshTokenSchema } from "./schema/refresh-token.schema";
 import { ResetToken, ResetTokenSchema } from "./schema/reset-token.schema";
 import { MailService } from "src/services/mail.service";
+import { PassportModule } from "@nestjs/passport";
+import { GoogleStrategy } from "./strategies/google.strategy";
 
 @Module({
-    imports: [MongooseModule.forFeature([
+    imports: [
+        PassportModule,
+        MongooseModule.forFeature([
         {
         name: 'User',
         schema: UserSchema,
@@ -21,7 +25,7 @@ import { MailService } from "src/services/mail.service";
         }
 ])],
     controllers: [AuthController],
-    providers: [AuthService, MailService],
+    providers: [AuthService, GoogleStrategy, MailService],
     exports: [AuthService, MailService]
 })
 export class AuthModule{}
