@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from './schema/user.schema';
 import { Model } from 'mongoose';
-import { SignupDTO } from './dtos/signupdto';
+import { SignupDTO } from './dtos/signup.dto';
 import * as bcrypt from 'bcrypt';
 import { LoginDTO } from './dtos/login.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -23,7 +23,7 @@ export class AuthService {
     private mailService: MailService,
   ){}
 
-  async signup(signupData: SignupDTO) {
+  async customerSignup(signupData: SignupDTO) {
     const {email, password, name} = signupData;
     const existingUser = await this.UserModel.findOne({email}); 
     if (existingUser) {
@@ -33,6 +33,20 @@ export class AuthService {
 
     await this.UserModel.create({email, password: hashedPassword, name});
   }
+
+  async fixerSignup(signupData: SignupDTO) {
+    const {email, password, name} = signupData;
+    const existingUser = await this.UserModel.findOne({email}); 
+    if (existingUser) {
+      throw new BadRequestException('User already exists');
+    }
+    const hashedPassword =await bcrypt.hash(password, 10);
+
+    await this.UserModel.create({email, password: hashedPassword, name});
+  }
+
+
+
   async login(credentials: LoginDTO) {
     const {email, password} = credentials;
     const user = await this.UserModel.findOne({email});
@@ -52,6 +66,8 @@ export class AuthService {
         userId: user._id,
     }
   }
+
+
   async refreshTokens(refreshToken: string){
     const token = await this.RefreshTokenModel.findOne({token: refreshToken,
         expiresAt: {$gt: new Date()}
@@ -62,6 +78,7 @@ export class AuthService {
     return this.generateUserTokens(token.userId);
   }
 
+
   async generateUserTokens(userId){
     const accessToken = this.jwtService.sign({userId},{expiresIn: '1h'});
     const { v4: uuidv4 } = await import('uuid');
@@ -70,6 +87,8 @@ export class AuthService {
     return {accessToken, refreshToken};
 
   }
+
+
   async storeRefreshToken(token: string, userId){
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 2);
@@ -78,7 +97,9 @@ export class AuthService {
     }
     );
   }
-  async ChangePassword(userId: string, changePasswordDto: ChangePasswordDTO){
+
+
+  async changePassword(userId: string, changePasswordDto: ChangePasswordDTO){
     const {oldPassword, newPassword} = changePasswordDto;
     const user = await this.UserModel.findById(userId);
     if(!user){
@@ -92,6 +113,7 @@ export class AuthService {
     user.password = hashedPassword;
     await user.save();
   }
+
 
   async forgotPassword(email: string){
     const user = await this.UserModel.findOne({email});
@@ -108,6 +130,11 @@ export class AuthService {
     return {message: 'If this user exists, they will receive an email'};
   }
 
+  async logout(refreshToken: string){
+    await this.RefreshTokenModel.deleteOne({token: refreshToken});
+  }
+
+
   async resetPassword(newPassword: string, resetToken: string){
     const token = await this.ResetTokenModel.findOneAndDelete({token: resetToken,
         expiresAt: {$gt: new Date()}
@@ -123,5 +150,34 @@ export class AuthService {
     user.password = hashedPassword;
     await user.save();
     // await this.ResetTokenModel.deleteOne({token: resetToken});
+  }
+
+  async googleLogin(googleUser: any) {
+    const { email, firstName, lastName } = googleUser;
+    
+    // Check if user exists
+    let user = await this.UserModel.findOne({ email });
+    
+    if (!user) {
+      // Create new user if doesn't exist
+      const hashedPassword = await bcrypt.hash(Math.random().toString(36), 10);
+      user = await this.UserModel.create({
+        name: `${firstName} ${lastName}`,
+        email,
+        password: hashedPassword,
+      });
+    }
+    
+    // Generate tokens
+    const tokens = await this.generateUserTokens(user._id);
+    return {
+      ...tokens,
+      userId: user._id,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+      },
+    };
   }
 }

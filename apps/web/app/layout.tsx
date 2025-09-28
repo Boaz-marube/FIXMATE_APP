@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "./components/theme/theme-provider";
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-poppins',
+});
 // import ErrorBoundary from "@/app/components/ErrorBoundary";
 
 export const metadata: Metadata = {
@@ -18,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className={`${poppins.variable} font-sans`}>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
