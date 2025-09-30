@@ -47,7 +47,7 @@ export function Header() {
               href="/doctors" 
               className="text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-colors duration-200"
             >
-              Doctors
+             Fixers
             </a>
             <a 
               href="/contact" 
@@ -108,7 +108,7 @@ export function Header() {
       {/* Mobile Menu */}
       {isMenuOpen && (
         <div className="md:hidden border-t border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-          <div className="px-4 py-4 space-y-3">
+          <div className="text-center px-4 py-4 space-y-3">
             {/* Mobile Navigation Links */}
             <a 
               href="/" 
@@ -129,7 +129,7 @@ export function Header() {
               className="block text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 py-2 transition-colors duration-200" 
               onClick={() => setIsMenuOpen(false)}
             >
-              Doctors
+              Fixers
             </a>
             <a 
               href="/contact" 
@@ -145,7 +145,7 @@ export function Header() {
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-slate-600 hover:bg-orange-50 dark:hover:bg-slate-800"
+                  className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-slate-600 hover:bg-orange-50 dark:hover:bg-slate-800 cursor-pointer"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Login
@@ -159,7 +159,7 @@ export function Header() {
                     backgroundImage: "linear-gradient(276.68deg, #FFB347 20.18%, #FF6B35 94.81%)",
                     color: "white",
                   }}
-                  className="w-full"
+                  className="w-full cursor-pointer"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Sign Up

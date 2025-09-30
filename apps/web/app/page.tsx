@@ -1,6 +1,10 @@
 "use client"
 
-import { ModeToggle } from "./components/theme/mode-toggle"
+import { HeroSection } from "./components/landing/heroSection"
+import { ServiceGrid } from "./components/landing/serviceSection"
+import { Testimonials } from "./components/landing/testimonialSection"
+import { Values } from "./components/landing/values"
+import { Footer } from "./components/ui/footer"
 import { Header } from "./components/ui/header"
 
 export default function HomePage() {
@@ -8,8 +12,11 @@ export default function HomePage() {
   return (
     <>
       <Header/>
-      <h1 className="text-white-800 bg-black font-[Poppins]">Hello World, This is the font-family called Poppins and I really love it </h1>
-      <ModeToggle/>
+      <HeroSection/>
+      <ServiceGrid/>
+      <Values/>
+      <Testimonials/>
+      <Footer/>
     </>
   )
 }
