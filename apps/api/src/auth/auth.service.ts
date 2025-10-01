@@ -12,6 +12,7 @@ import { nanoid } from 'nanoid';
 import { ResetToken } from './schema/reset-token.schema';
 import { MailService } from 'src/services/mail.service';
 import { FixerSignupDto } from './dtos/fixerSignup.dto';
+import { UpdateProfileDto } from './dtos/update-profile.dto';
 
 
 @Injectable()
@@ -37,7 +38,8 @@ export class AuthService {
       password: hashedPassword, 
       name, 
       phoneNumber, 
-      address: address || 'Not provided'
+      address: address || 'Not provided',
+      userType: 'customer'
     });
   }
 
@@ -83,6 +85,13 @@ export class AuthService {
     return {
         ...tokens,
         userId: user._id,
+        userType: user.userType,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          userType: user.userType,
+        }
     }
   }
 
@@ -171,8 +180,42 @@ export class AuthService {
     // await this.ResetTokenModel.deleteOne({token: resetToken});
   }
 
+  async getProfile(userId: string) {
+    const user = await this.UserModel.findById(userId).select('-password');
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    return user;
+  }
+
+  async updateProfile(userId: string, updateData: UpdateProfileDto) {
+    const user = await this.UserModel.findById(userId);
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Check if email is being changed and if it already exists
+    if (updateData.email && updateData.email !== user.email) {
+      const existingUser = await this.UserModel.findOne({ email: updateData.email });
+      if (existingUser) {
+        throw new BadRequestException('Email already exists');
+      }
+    }
+
+    Object.assign(user, updateData);
+    await user.save();
+    
+    // Return user without password
+    const { password, ...userWithoutPassword } = user.toObject();
+    return userWithoutPassword;
+  }
+
   async googleLogin(googleUser: any) {
     const { email, firstName, lastName } = googleUser;
+    
+    // Ensure names are strings, not undefined
+    const safeFirstName = firstName || '';
+    const safeLastName = lastName || '';
     
     // Check if user exists
     let user = await this.UserModel.findOne({ email });
@@ -180,12 +223,15 @@ export class AuthService {
     if (!user) {
       // Create new user if doesn't exist
       const hashedPassword = await bcrypt.hash(Math.random().toString(36), 10);
+      const fullName = safeLastName ? `${safeFirstName} ${safeLastName}` : safeFirstName;
+      
       user = await this.UserModel.create({
-        name: `${firstName} ${lastName}`,
+        name: fullName.trim(),
         email,
         password: hashedPassword,
         phoneNumber: 'Not provided',
-        address: 'Not provided'
+        address: 'Not provided',
+        userType: 'customer'
       });
     }
     
@@ -198,6 +244,7 @@ export class AuthService {
         id: user._id,
         name: user.name,
         email: user.email,
+        userType: user.userType,
       },
     };
   }

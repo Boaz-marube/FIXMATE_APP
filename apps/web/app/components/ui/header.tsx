@@ -4,10 +4,13 @@ import Link from "next/link"
 import { useState } from "react"
 import { Button } from "./button"
 import { ModeToggle } from "../theme/mode-toggle"
+import { useAuth } from '@/app/contexts/AuthContext'
+import { LogoutButton } from '../auth/LogoutButton'
 import  '../../../public/fix-logo.svg'
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { isAuthenticated, user } = useAuth()
 
   return (
     <nav className="sticky top-0 z-50 border-b bg-white dark:bg-slate-900 shadow-sm backdrop-blur-sm">
@@ -64,28 +67,39 @@ export function Header() {
             
             {/* Auth Buttons - Desktop */}
             <div className="hidden sm:flex items-center space-x-2">
-              <Link href="/login">
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  className="text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-800"
-                >
-                  Login
-                </Button>
-              </Link>
-              <Link href="/signup">
-                <Button 
-                  size="sm"
-                  style={{
-                    backgroundColor: "#FF8C42",
-                    backgroundImage: "linear-gradient(276.68deg, #FFB347 20.18%, #FF6B35 94.81%)",
-                    color: "white",
-                  }}
-                  className="shadow-md hover:shadow-lg transition-all duration-200"
-                >
-                  Sign Up
-                </Button>
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Welcome, {user?.name || 'User'}
+                  </span>
+                  <LogoutButton />
+                </>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      className="text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-800"
+                    >
+                      Login
+                    </Button>
+                  </Link>
+                  <Link href="/signup">
+                    <Button 
+                      size="sm"
+                      style={{
+                        backgroundColor: "#FF8C42",
+                        backgroundImage: "linear-gradient(276.68deg, #FFB347 20.18%, #FF6B35 94.81%)",
+                        color: "white",
+                      }}
+                      className="shadow-md hover:shadow-lg transition-all duration-200"
+                    >
+                      Sign Up
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -141,30 +155,45 @@ export function Header() {
             
             {/* Mobile Auth Buttons */}
             <div className="sm:hidden pt-3 border-t border-gray-200 dark:border-slate-700 space-y-2">
-              <Link href="/login" className="block">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-slate-600 hover:bg-orange-50 dark:hover:bg-slate-800 cursor-pointer"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Login
-                </Button>
-              </Link>
-              <Link href="/signup" className="block">
-                <Button 
-                  size="sm" 
-                  style={{
-                    backgroundColor: "#FF8C42",
-                    backgroundImage: "linear-gradient(276.68deg, #FFB347 20.18%, #FF6B35 94.81%)",
-                    color: "white",
-                  }}
-                  className="w-full cursor-pointer"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Sign Up
-                </Button>
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <div className="text-center text-sm text-gray-600 dark:text-gray-400 py-2">
+                    Welcome, {user?.name || 'User'}
+                  </div>
+                  <LogoutButton 
+                    variant="outline" 
+                    size="sm" 
+                    className="w-full"
+                  />
+                </>
+              ) : (
+                <>
+                  <Link href="/login" className="block">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full text-gray-700 dark:text-gray-300 border-gray-300 dark:border-slate-600 hover:bg-orange-50 dark:hover:bg-slate-800 cursor-pointer"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Login
+                    </Button>
+                  </Link>
+                  <Link href="/signup" className="block">
+                    <Button 
+                      size="sm" 
+                      style={{
+                        backgroundColor: "#FF8C42",
+                        backgroundImage: "linear-gradient(276.68deg, #FFB347 20.18%, #FF6B35 94.81%)",
+                        color: "white",
+                      }}
+                      className="w-full cursor-pointer"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Sign Up
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

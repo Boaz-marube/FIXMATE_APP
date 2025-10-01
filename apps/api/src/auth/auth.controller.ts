@@ -1,5 +1,6 @@
 import {Body, Controller, Get, Post, Put, Req, Res, UseGuards} from '@nestjs/common';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
+import { AuthenticatedRequest } from '../types/auth.types';
 import {AuthService} from './auth.service';
 import { CustomerSignupDto } from './dtos/customerSignUp.dto';
 import { LoginDTO } from './dtos/login.dto';
@@ -11,6 +12,7 @@ import { ResetPasswordDTO } from './dtos/reset-password.dto';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { GoogleAuthGuard } from './guards/google-auth.guards';
 import { FixerSignupDto } from './dtos/fixerSignup.dto';
+import { UpdateProfileDto } from './dtos/update-profile.dto';
 
 @ApiTags('Authentication')
 @Controller('auth')
@@ -55,7 +57,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Change user password' })
   @ApiResponse({ status: 200, description: 'Password changed successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async changePassword(@Body() changePasswordDto: ChangePasswordDTO, @Req()req) {
+  async changePassword(@Body() changePasswordDto: ChangePasswordDTO, @Req() req) {
     return this.authService.changePassword(req.userId, changePasswordDto);
   }
 
@@ -69,6 +71,24 @@ export class AuthController {
   @Put('reset-password')
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDTO) {
     return this.authService.resetPassword(resetPasswordDto.newPassword, resetPasswordDto.resetToken);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('profile')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get user profile' })
+  @ApiResponse({ status: 200, description: 'Profile retrieved successfully' })
+  async getProfile(@Req() req) {
+    return this.authService.getProfile(req.userId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Put('profile')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update user profile' })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  async updateProfile(@Body() updateData: UpdateProfileDto, @Req() req) {
+    return this.authService.updateProfile(req.userId, updateData);
   }
 
   @Get('google')
@@ -93,7 +113,13 @@ export class AuthController {
       const { accessToken, refreshToken, user} = await this.authService.googleLogin(req.user);
 
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-      res.redirect(`${frontendUrl}/auth/google/success?token=${accessToken}&refreshToken=${refreshToken}&userId=${user.id}`);
+      const userData = encodeURIComponent(JSON.stringify({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        userType: user.userType || 'customer'
+      }));
+      res.redirect(`${frontendUrl}/auth/google/success?token=${accessToken}&refreshToken=${refreshToken}&user=${userData}`);
     } catch (error) {
       console.error('Google auth error:', error);
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
