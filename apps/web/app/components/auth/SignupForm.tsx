@@ -11,6 +11,12 @@ interface FormData {
   phoneNumber: string;
   address: string;
   userType: string;
+  // Fixer-specific fields
+  skills?: string[];
+  experienceYears?: number;
+  serviceArea?: string;
+  nationalId?: string;
+  description?: string;
 }
 
 export function SignupForm() {
@@ -23,13 +29,18 @@ export function SignupForm() {
     phoneNumber: "",
     address: "",
     userType: "customer",
+    skills: [],
+    experienceYears: 0,
+    serviceArea: "",
+    nationalId: "",
+    description: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
@@ -60,14 +71,15 @@ export function SignupForm() {
         email: formData.email,
         password: formData.password,
         phoneNumber: formData.phoneNumber,
-        address: formData.address,
-        ...(formData.userType === "doctor" && {
-          specialization: "General Practice",
-          licenseNumber: "TBD",
+        ...(formData.userType === "customer" && {
+          address: formData.address,
         }),
-        ...(formData.userType === "staff" && {
-          role: "General Staff",
-          department: "General",
+        ...(formData.userType === "fixer" && {
+          skills: formData.skills,
+          experienceYears: Number(formData.experienceYears),
+          serviceArea: formData.serviceArea,
+          nationalId: formData.nationalId,
+          description: formData.description,
         }),
       };
 
@@ -125,8 +137,8 @@ export function SignupForm() {
             required
             disabled={loading}
           >
-            <option value="patient">Customer</option>
-            <option value="doctor">Fixer</option>
+            <option value="customer">Customer</option>
+            <option value="fixer">Fixer</option>
           </select>
         </div>
 
@@ -164,8 +176,7 @@ export function SignupForm() {
           />
         </div>
             
-        <div className="flex justify-between ">
-            {/* Phone Number */}
+        {/* Phone Number */}
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
             Phone Number <span className="text-red-500">*</span>
@@ -175,31 +186,124 @@ export function SignupForm() {
             name="phoneNumber"
             value={formData.phoneNumber}
             onChange={handleInputChange}
-            placeholder="Enter Phone number"
-            className="w-full px-3 py-2 text-gray-700 placeholder-gray-400 border-0 rounded-lg bg-blue-50 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+            placeholder="+254712345678"
+            className="w-full px-4 py-2 text-gray-700 placeholder-gray-400 border-0 rounded-lg bg-blue-50 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
             required
             disabled={loading}
           />
         </div>
        
-        {/* Address */}
-        <div>
-          <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-            Address <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="address"
-            value={formData.address}
-            onChange={handleInputChange}
-            placeholder="Enter your Address"
-            className="w-full px-3 py-2 text-gray-700 placeholder-gray-400 border-0 rounded-lg bg-blue-50 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
-            required
-            disabled={loading}
-          />
-        </div>
+        {/* Address - Customer only */}
+        {formData.userType === "customer" && (
+          <div>
+            <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+              Address
+            </label>
+            <input
+              type="text"
+              name="address"
+              value={formData.address}
+              onChange={handleInputChange}
+              placeholder="Enter your Address (optional)"
+              className="w-full px-4 py-2 text-gray-700 placeholder-gray-400 border-0 rounded-lg bg-blue-50 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+              disabled={loading}
+            />
+          </div>
+        )}
 
-        </div>
+        {/* Fixer-specific fields */}
+        {formData.userType === "fixer" && (
+          <>
+            {/* Service Area */}
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                Service Area <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="serviceArea"
+                value={formData.serviceArea || ""}
+                onChange={handleInputChange}
+                placeholder="e.g., Kilimani, Nairobi"
+                className="w-full px-4 py-2 text-gray-700 placeholder-gray-400 border-0 rounded-lg bg-blue-50 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+                disabled={loading}
+              />
+            </div>
+
+            {/* Skills */}
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                Skills <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                name="skills"
+                value={formData.skills?.join(", ") || ""}
+                onChange={(e) => {
+                  const skillsArray = e.target.value.split(",").map(skill => skill.trim()).filter(skill => skill);
+                  setFormData(prev => ({ ...prev, skills: skillsArray }));
+                }}
+                placeholder="e.g., plumbing, electrical, carpentry"
+                className="w-full px-4 py-2 text-gray-700 placeholder-gray-400 border-0 rounded-lg bg-blue-50 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+                disabled={loading}
+              />
+              <p className="text-xs text-gray-500 mt-1">Separate skills with commas</p>
+            </div>
+
+            {/* Experience Years */}
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                Years of Experience <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                name="experienceYears"
+                value={formData.experienceYears || ""}
+                onChange={handleInputChange}
+                placeholder="5"
+                min="0"
+                max="50"
+                className="w-full px-4 py-2 text-gray-700 placeholder-gray-400 border-0 rounded-lg bg-blue-50 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                required
+                disabled={loading}
+              />
+            </div>
+
+            {/* National ID (Optional) */}
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                National ID (Optional)
+              </label>
+              <input
+                type="text"
+                name="nationalId"
+                value={formData.nationalId || ""}
+                onChange={handleInputChange}
+                placeholder="A123456789"
+                className="w-full px-4 py-2 text-gray-700 placeholder-gray-400 border-0 rounded-lg bg-blue-50 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                disabled={loading}
+              />
+            </div>
+
+            {/* Description (Optional) */}
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                Description (Optional)
+              </label>
+              <textarea
+                name="description"
+                value={formData.description || ""}
+                onChange={handleInputChange}
+                placeholder="Brief description of your services and experience"
+                rows={3}
+                className="w-full px-4 py-2 text-gray-700 placeholder-gray-400 border-0 rounded-lg bg-blue-50 dark:bg-gray-700 dark:text-white dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                disabled={loading}
+              />
+            </div>
+          </>
+        )}
         
         {/* Password */}
         <div>

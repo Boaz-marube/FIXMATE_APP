@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from './schema/user.schema';
 import { Model } from 'mongoose';
-import { SignupDTO } from './dtos/signup.dto';
+import { CustomerSignupDto } from './dtos/customerSignUp.dto';
 import * as bcrypt from 'bcrypt';
 import { LoginDTO } from './dtos/login.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -11,6 +11,7 @@ import { ChangePasswordDTO } from './dtos/change-password.dto';
 import { nanoid } from 'nanoid';
 import { ResetToken } from './schema/reset-token.schema';
 import { MailService } from 'src/services/mail.service';
+import { FixerSignupDto } from './dtos/fixerSignup.dto';
 
 
 @Injectable()
@@ -23,26 +24,44 @@ export class AuthService {
     private mailService: MailService,
   ){}
 
-  async customerSignup(signupData: SignupDTO) {
-    const {email, password, name} = signupData;
+  async customerSignup(signupData: CustomerSignupDto) {
+    const {email, password, name, phoneNumber, address} = signupData;
     const existingUser = await this.UserModel.findOne({email}); 
     if (existingUser) {
       throw new BadRequestException('User already exists');
     }
-    const hashedPassword =await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    await this.UserModel.create({email, password: hashedPassword, name});
+    await this.UserModel.create({
+      email, 
+      password: hashedPassword, 
+      name, 
+      phoneNumber, 
+      address: address || 'Not provided'
+    });
   }
 
-  async fixerSignup(signupData: SignupDTO) {
-    const {email, password, name} = signupData;
+  async fixerSignup(signupData: FixerSignupDto) {
+    const {email, password, name, phoneNumber, skills, experienceYears, serviceArea, nationalId, description} = signupData;
     const existingUser = await this.UserModel.findOne({email}); 
     if (existingUser) {
       throw new BadRequestException('User already exists');
     }
-    const hashedPassword =await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    await this.UserModel.create({email, password: hashedPassword, name});
+    await this.UserModel.create({
+      email, 
+      password: hashedPassword, 
+      name, 
+      phoneNumber, 
+      address: serviceArea, // Use serviceArea as address for fixers
+      skills,
+      experienceYears,
+      serviceArea,
+      nationalId,
+      description,
+      userType: 'fixer'
+    });
   }
 
 
@@ -165,6 +184,8 @@ export class AuthService {
         name: `${firstName} ${lastName}`,
         email,
         password: hashedPassword,
+        phoneNumber: 'Not provided',
+        address: 'Not provided'
       });
     }
     
