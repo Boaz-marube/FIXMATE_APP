@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/
 import { InjectModel } from '@nestjs/mongoose';
 import { User } from './schema/user.schema';
 import { Model } from 'mongoose';
-import { SignupDTO } from './dtos/signup.dto';
+import { CustomerSignupDto } from './dtos/customerSignUp.dto';
 import * as bcrypt from 'bcrypt';
 import { LoginDTO } from './dtos/login.dto';
 import { JwtService } from '@nestjs/jwt';
@@ -11,6 +11,8 @@ import { ChangePasswordDTO } from './dtos/change-password.dto';
 import { nanoid } from 'nanoid';
 import { ResetToken } from './schema/reset-token.schema';
 import { MailService } from 'src/services/mail.service';
+import { FixerSignupDto } from './dtos/fixerSignup.dto';
+import { UpdateProfileDto } from './dtos/update-profile.dto';
 
 
 @Injectable()
@@ -23,26 +25,45 @@ export class AuthService {
     private mailService: MailService,
   ){}
 
-  async customerSignup(signupData: SignupDTO) {
-    const {email, password, name} = signupData;
+  async customerSignup(signupData: CustomerSignupDto) {
+    const {email, password, name, phoneNumber, address} = signupData;
     const existingUser = await this.UserModel.findOne({email}); 
     if (existingUser) {
       throw new BadRequestException('User already exists');
     }
-    const hashedPassword =await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    await this.UserModel.create({email, password: hashedPassword, name});
+    await this.UserModel.create({
+      email, 
+      password: hashedPassword, 
+      name, 
+      phoneNumber, 
+      address: address || 'Not provided',
+      userType: 'customer'
+    });
   }
 
-  async fixerSignup(signupData: SignupDTO) {
-    const {email, password, name} = signupData;
+  async fixerSignup(signupData: FixerSignupDto) {
+    const {email, password, name, phoneNumber, skills, experienceYears, serviceArea, nationalId, description} = signupData;
     const existingUser = await this.UserModel.findOne({email}); 
     if (existingUser) {
       throw new BadRequestException('User already exists');
     }
-    const hashedPassword =await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    await this.UserModel.create({email, password: hashedPassword, name});
+    await this.UserModel.create({
+      email, 
+      password: hashedPassword, 
+      name, 
+      phoneNumber, 
+      address: serviceArea, // Use serviceArea as address for fixers
+      skills,
+      experienceYears,
+      serviceArea,
+      nationalId,
+      description,
+      userType: 'fixer'
+    });
   }
 
 
@@ -64,6 +85,13 @@ export class AuthService {
     return {
         ...tokens,
         userId: user._id,
+        userType: user.userType,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          userType: user.userType,
+        }
     }
   }
 
@@ -152,8 +180,42 @@ export class AuthService {
     // await this.ResetTokenModel.deleteOne({token: resetToken});
   }
 
+  async getProfile(userId: string) {
+    const user = await this.UserModel.findById(userId).select('-password');
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    return user;
+  }
+
+  async updateProfile(userId: string, updateData: UpdateProfileDto) {
+    const user = await this.UserModel.findById(userId);
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+
+    // Check if email is being changed and if it already exists
+    if (updateData.email && updateData.email !== user.email) {
+      const existingUser = await this.UserModel.findOne({ email: updateData.email });
+      if (existingUser) {
+        throw new BadRequestException('Email already exists');
+      }
+    }
+
+    Object.assign(user, updateData);
+    await user.save();
+    
+    // Return user without password
+    const { password, ...userWithoutPassword } = user.toObject();
+    return userWithoutPassword;
+  }
+
   async googleLogin(googleUser: any) {
     const { email, firstName, lastName } = googleUser;
+    
+    // Ensure names are strings, not undefined
+    const safeFirstName = firstName || '';
+    const safeLastName = lastName || '';
     
     // Check if user exists
     let user = await this.UserModel.findOne({ email });
@@ -161,10 +223,15 @@ export class AuthService {
     if (!user) {
       // Create new user if doesn't exist
       const hashedPassword = await bcrypt.hash(Math.random().toString(36), 10);
+      const fullName = safeLastName ? `${safeFirstName} ${safeLastName}` : safeFirstName;
+      
       user = await this.UserModel.create({
-        name: `${firstName} ${lastName}`,
+        name: fullName.trim(),
         email,
         password: hashedPassword,
+        phoneNumber: 'Not provided',
+        address: 'Not provided',
+        userType: 'customer'
       });
     }
     
@@ -177,6 +244,7 @@ export class AuthService {
         id: user._id,
         name: user.name,
         email: user.email,
+        userType: user.userType,
       },
     };
   }

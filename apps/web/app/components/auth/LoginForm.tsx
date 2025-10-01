@@ -5,6 +5,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { useAuth } from '@/app/contexts/AuthContext';
 
 interface FormData {
   email: string;
@@ -14,6 +15,7 @@ interface FormData {
 
 export function LoginForm() {
   const router = useRouter();
+  const { login } = useAuth();
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: "",
@@ -52,24 +54,19 @@ export function LoginForm() {
       const data = await response.json();
 
       if (response.ok) {
-        // Store token
-        localStorage.setItem("token", data.accessToken);
-        if (data.refreshToken) {
-          localStorage.setItem("refreshToken", data.refreshToken);
-        }
-        
-        // Default role for regular login (can be enhanced later)
-        const userRole = 'customer';
-        localStorage.setItem("userRole", userRole);
-
-        // Store minimal user info (JWT only contains userId)
+        // Use auth context to handle login with full user data
         const user = {
-          id: data.userId,
-          userType: userRole,
+          id: data.user.id,
+          name: data.user.name,
+          email: data.user.email,
+          userType: data.user.userType || 'customer',
         };
 
-        localStorage.setItem("user", JSON.stringify(user));
-        router.push("/customer");
+        login(data.accessToken, data.refreshToken, user);
+        
+        // Redirect based on user type
+        const redirectPath = user.userType === 'fixer' ? '/fixer' : '/customer';
+        router.push(redirectPath);
       } else {
         setError(data.message || "Login failed. Please try again.");
       }

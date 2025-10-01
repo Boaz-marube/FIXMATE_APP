@@ -2,48 +2,32 @@
 
 import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 function GoogleAuthSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { login } = useAuth();
 
   useEffect(() => {
     const token = searchParams.get('token');
     const refreshToken = searchParams.get('refreshToken');
-    const userId = searchParams.get('userId');
+    const userParam = searchParams.get('user');
 
-    if (token && userId) {
-      // Store authentication data
-      localStorage.setItem('token', token);
-      if (refreshToken) {
-        localStorage.setItem('refreshToken', refreshToken);
-      }
-
-      // Store authentication data
+    if (token && userParam) {
       try {
-        // Decode JWT to get userId (for verification)
+        // Parse user data from URL
+        const user = JSON.parse(decodeURIComponent(userParam));
+        
         if (!token) throw new Error('Token is missing');
-        if (!userId) throw new Error('User ID is missing');
+        if (!user.id) throw new Error('User ID is missing');
         
-        const tokenParts = token.split('.');
-        if (tokenParts.length !== 3) throw new Error('Invalid JWT format');
+        // Use AuthContext login method
+        login(token, refreshToken || '', user);
         
-        const tokenPayload = JSON.parse(atob(tokenParts[1]!));
-        
-        // For Google auth, default to customer role
-        const userRole = 'customer';
-        localStorage.setItem('userRole', userRole);
-        
-        // Store minimal user info (more details can be fetched from API if needed)
-        const user = {
-          id: userId,
-          userType: userRole
-        };
-
-        localStorage.setItem('user', JSON.stringify(user));
-        
-        // Redirect to dashboard
-        router.push('/customer');
+        // Redirect based on user type
+        const redirectPath = user.userType === 'fixer' ? '/fixer' : '/customer';
+        router.push(redirectPath);
       } catch (error) {
         console.error('Error processing Google auth:', error);
         router.push('/login?error=Authentication failed');
